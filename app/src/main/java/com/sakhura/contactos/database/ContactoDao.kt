@@ -1,5 +1,9 @@
 package com.sakhura.contactos.database
 
+import androidx.lifecycle.LiveData
+import androidx.room.*
+import com.sakhura.contactos.model.Contacto
+
 @Dao
 interface ContactoDao {
     @Query("SELECT * FROM contactos ORDER BY nombre ASC")
@@ -8,7 +12,12 @@ interface ContactoDao {
     @Query("SELECT * FROM contactos WHERE nombre LIKE :query")
     fun buscarContactos(query: String): LiveData<List<Contacto>>
 
-    @Insert suspend fun insertar(contacto: Contacto)
-    @Update suspend fun actualizar(contacto: Contacto)
-    @Delete suspend fun eliminar(contacto: Contacto)
+    @Insert
+    suspend fun insertar(contacto: Contacto)
+
+    @Update
+    suspend fun actualizar(contacto: Contacto)
+
+    @Delete
+    suspend fun eliminar(contacto: Contacto)
 }

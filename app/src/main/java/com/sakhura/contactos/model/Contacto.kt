@@ -1,3 +1,9 @@
+package com.sakhura.contactos.model
+
+import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.PrimaryKey
+
 @Entity(
     tableName = "contactos",
     foreignKeys = [ForeignKey(

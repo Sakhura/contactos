@@ -1,4 +1,11 @@
-<?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-
+    <item
+        android:id="@+id/action_llamar"
+        android:title="Llamar" />
+    <item
+        android:id="@+id/action_exportar"
+        android:title="Exportar a vCard" />
+    <item
+        android:id="@+id/action_agregar_grupo"
+        android:title="Agregar a Grupo" />
 </menu>
