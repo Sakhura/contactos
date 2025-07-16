@@ -1,9 +1,14 @@
 package com.sakhura.contactos.viewmodel
 
-
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.Transformations
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.launch
 import com.sakhura.contactos.database.ContactosDatabase
-import com.sakhura.contactos.model.Categoria
+import com.sakhura.contactos.model.*
 import com.sakhura.contactos.repository.ContactosRepository
 
 class ContactosViewModel(application: Application) : AndroidViewModel(application) {
@@ -26,20 +31,7 @@ class ContactosViewModel(application: Application) : AndroidViewModel(applicatio
         grupos = repository.grupos
     }
 
-    // --- Grupos ---
-    fun insertarGrupo(grupo: Grupo) = viewModelScope.launch {
-        repository.insertarGrupo(grupo)
-    }
-
-    fun asociarContactoAGrupo(contactoId: Int, grupoId: Int) = viewModelScope.launch {
-        repository.asociarContactoAGrupo(ContactoGrupoCrossRef(contactoId, grupoId))
-    }
-
-    fun obtenerContactosDeGrupo(grupoId: Int): LiveData<GrupoConContactos> {
-        return repository.obtenerGrupoConContactos(grupoId)
-    }
-
-    // --- Contactos (resumen) ---
+    // --- Contactos ---
     fun insertar(contacto: Contacto) = viewModelScope.launch {
         repository.insertarContacto(contacto)
     }
@@ -59,5 +51,51 @@ class ContactosViewModel(application: Application) : AndroidViewModel(applicatio
     private val _busqueda = MutableLiveData<String>()
     val contactosFiltrados: LiveData<List<Contacto>> = Transformations.switchMap(_busqueda) {
         if (it.isBlank()) contactos else repository.buscarContactos(it)
+    }
+
+    // --- Categorías ---
+    fun insertarCategoria(categoria: Categoria) = viewModelScope.launch {
+        repository.insertarCategoria(categoria)
+    }
+
+    // --- Grupos ---
+    fun insertarGrupo(grupo: Grupo) = viewModelScope.launch {
+        repository.insertarGrupo(grupo)
+    }
+
+    fun actualizarGrupo(grupo: Grupo) = viewModelScope.launch {
+        repository.actualizarGrupo(grupo)
+    }
+
+    fun eliminarGrupo(grupo: Grupo) = viewModelScope.launch {
+        repository.eliminarGrupo(grupo)
+    }
+
+    // --- Relaciones Contacto-Grupo ---
+    fun asociarContactoAGrupo(contactoId: Int, grupoId: Int) = viewModelScope.launch {
+        repository.asociarContactoAGrupo(ContactoGrupoCrossRef(contactoId, grupoId))
+    }
+
+    fun removerContactoDeGrupo(contactoId: Int, grupoId: Int) = viewModelScope.launch {
+        repository.removerContactoDeGrupo(ContactoGrupoCrossRef(contactoId, grupoId))
+    }
+
+    // --- Consultas de relaciones ---
+    fun obtenerContactosDeGrupo(grupoId: Int): LiveData<GrupoConContactos> {
+        return repository.obtenerGrupoConContactos(grupoId)
+    }
+
+    fun obtenerGruposDeContacto(contactoId: Int): LiveData<ContactoConGrupos> {
+        return repository.obtenerContactoConGrupos(contactoId)
+    }
+
+    fun obtenerTodosLosGruposConContactos(): LiveData<List<GrupoConContactos>> {
+        return repository.obtenerTodosLosGruposConContactos()
+    }
+
+    // --- Consultas adicionales ---
+    fun contarContactosEnGrupo(grupoId: Int, callback: (Int) -> Unit) = viewModelScope.launch {
+        val count = repository.contarContactosEnGrupo(grupoId)
+        callback(count)
     }
 }

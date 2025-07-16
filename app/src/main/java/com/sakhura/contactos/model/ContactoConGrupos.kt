@@ -4,16 +4,16 @@ import androidx.room.Embedded
 import androidx.room.Junction
 import androidx.room.Relation
 
-data class GrupoConContactos(
-    @Embedded val grupo: Grupo,
+data class ContactoConGrupos(
+    @Embedded val contacto: Contacto,
     @Relation(
         parentColumn = "id",
         entityColumn = "id",
         associateBy = Junction(
             ContactoGrupoCrossRef::class,
-            parentColumn = "grupoId",     // Columna en CrossRef que apunta al Grupo
-            entityColumn = "contactoId"   // Columna en CrossRef que apunta al Contacto
+            parentColumn = "contactoId",  // Columna en CrossRef que apunta al Contacto
+            entityColumn = "grupoId"      // Columna en CrossRef que apunta al Grupo
         )
     )
-    val contactos: List<Contacto>
+    val grupos: List<Grupo>
 )

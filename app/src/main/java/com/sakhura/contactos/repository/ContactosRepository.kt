@@ -1,5 +1,9 @@
 package com.sakhura.contactos.repository
 
+import androidx.lifecycle.LiveData
+import com.sakhura.contactos.database.*
+import com.sakhura.contactos.model.*
+
 class ContactosRepository(
     private val contactoDao: ContactoDao,
     private val categoriaDao: CategoriaDao,
@@ -18,13 +22,38 @@ class ContactosRepository(
     // --- CRUD Categorías ---
     suspend fun insertarCategoria(categoria: Categoria) = categoriaDao.insertar(categoria)
 
+    // --- CRUD Grupos ---
+    suspend fun insertarGrupo(grupo: Grupo) = grupoDao.insertarGrupo(grupo)
+    suspend fun actualizarGrupo(grupo: Grupo) = grupoDao.actualizarGrupo(grupo)
+    suspend fun eliminarGrupo(grupo: Grupo) = grupoDao.eliminarGrupo(grupo)
+
     // --- Buscar contactos ---
     fun buscarContactos(query: String) = contactoDao.buscarContactos("%$query%")
 
-    // --- CRUD Grupos ---
-    suspend fun insertarGrupo(grupo: Grupo) = grupoDao.insertarGrupo(grupo)
+    // --- Relaciones Contacto-Grupo ---
     suspend fun asociarContactoAGrupo(crossRef: ContactoGrupoCrossRef) =
         grupoDao.insertarContactoGrupoCrossRef(crossRef)
-    fun obtenerGrupoConContactos(grupoId: Int) =
+
+    suspend fun removerContactoDeGrupo(crossRef: ContactoGrupoCrossRef) =
+        grupoDao.eliminarContactoGrupoCrossRef(crossRef)
+
+    // --- Consultas de relaciones ---
+    fun obtenerGrupoConContactos(grupoId: Int): LiveData<GrupoConContactos> =
         grupoDao.obtenerGrupoConContactos(grupoId)
+
+    fun obtenerContactoConGrupos(contactoId: Int): LiveData<ContactoConGrupos> =
+        grupoDao.obtenerContactoConGrupos(contactoId)
+
+    fun obtenerTodosLosGruposConContactos(): LiveData<List<GrupoConContactos>> =
+        grupoDao.obtenerTodosLosGruposConContactos()
+
+    // --- Consultas adicionales ---
+    suspend fun contarContactosEnGrupo(grupoId: Int): Int =
+        grupoDao.contarContactosEnGrupo(grupoId)
+
+    fun obtenerContactosDeGrupo(grupoId: Int): LiveData<List<Contacto>> =
+        grupoDao.obtenerContactosDeGrupo(grupoId)
+
+    fun obtenerGruposDeContacto(contactoId: Int): LiveData<List<Grupo>> =
+        grupoDao.obtenerGruposDeContacto(contactoId)
 }

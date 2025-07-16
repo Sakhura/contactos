@@ -1,19 +1,29 @@
 package com.sakhura.contactos.database
 
-import com.sakhura.contactos.model.Categoria
+import android.content.Context
+import androidx.room.*
+import com.sakhura.contactos.model.*
 
 @Database(
-    entities = [Contacto::class, Categoria::class, Grupo::class, ContactoGrupoCrossRef::class],
-    version = 1
+    entities = [
+        Contacto::class,
+        Categoria::class,
+        Grupo::class,
+        ContactoGrupoCrossRef::class
+    ],
+    version = 1,
+    exportSchema = false
 )
+@TypeConverters() // Agregar si necesitas convertidores personalizados
 abstract class ContactosDatabase : RoomDatabase() {
 
     abstract fun contactoDao(): ContactoDao
     abstract fun categoriaDao(): CategoriaDao
-    abstract fun grupoDao(): GrupoDao  // ⬅️ nuevo DAO
+    abstract fun grupoDao(): GrupoDao
 
     companion object {
-        @Volatile private var INSTANCE: ContactosDatabase? = null
+        @Volatile
+        private var INSTANCE: ContactosDatabase? = null
 
         fun getDatabase(context: Context): ContactosDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -21,7 +31,9 @@ abstract class ContactosDatabase : RoomDatabase() {
                     context.applicationContext,
                     ContactosDatabase::class.java,
                     "contactos_db"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration() // Solo para desarrollo
+                    .build()
                 INSTANCE = instance
                 instance
             }

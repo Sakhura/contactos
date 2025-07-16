@@ -1,36 +1,73 @@
 package com.sakhura.contactos.adapter
 
+import android.view.LayoutInflater
+import android.view.ViewGroup
+import androidx.recyclerview.widget.RecyclerView
+import com.sakhura.contactos.databinding.ItemContactoGrupoBinding
+
 class ContactosGrupoAdapter(
-    private val contactos: List<Contacto>,
-    private val onChecked: (Contacto, Boolean) -> Unit
-) : RecyclerView.Adapter<ContactosGrupoAdapter.ContactoViewHolder>() {
+    private var contactos: List<Contacto> = emptyList(),
+    private val onContactoClick: (Contacto) -> Unit = {},
+    private val onRemoverContacto: (Contacto) -> Unit = {}
+) : RecyclerView.Adapter<ContactosGrupoAdapter.ContactoGrupoViewHolder>() {
 
-    private val seleccionados = mutableSetOf<Int>()
+    inner class ContactoGrupoViewHolder(
+        private val binding: ItemContactoGrupoBinding
+    ) : RecyclerView.ViewHolder(binding.root) {
 
-    inner class ContactoViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
-        val checkBox: CheckBox = view.findViewById(R.id.checkboxContacto)
-    }
+        fun bind(contacto: Contacto) {
+            binding.apply {
+                tvNombre.text = contacto.nombre
+                tvTelefono.text = contacto.telefono
+                tvEmail.text = contacto.email
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactoViewHolder {
-        val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_checkbox_contacto, parent, false)
-        return ContactoViewHolder(view)
-    }
+                // Click en toda la tarjeta
+                root.setOnClickListener {
+                    onContactoClick(contacto)
+                }
 
-    override fun onBindViewHolder(holder: ContactoViewHolder, position: Int) {
-        val contacto = contactos[position]
-        holder.checkBox.text = contacto.nombre
-        holder.checkBox.isChecked = seleccionados.contains(contacto.id)
-
-        holder.checkBox.setOnCheckedChangeListener { _, isChecked ->
-            if (isChecked) {
-                seleccionados.add(contacto.id)
-            } else {
-                seleccionados.remove(contacto.id)
+                // Botón para remover del grupo
+                btnRemover.setOnClickListener {
+                    onRemoverContacto(contacto)
+                }
             }
-            onChecked(contacto, isChecked)
         }
     }
 
-    override fun getItemCount() = contactos.size
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ContactoGrupoViewHolder {
+        val binding = ItemContactoGrupoBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false
+        )
+        return ContactoGrupoViewHolder(binding)
+    }
+
+    override fun onBindViewHolder(holder: ContactoGrupoViewHolder, position: Int) {
+        holder.bind(contactos[position])
+    }
+
+    override fun getItemCount(): Int = contactos.size
+
+    fun actualizarContactos(nuevosContactos: List<Contacto>) {
+        contactos = nuevosContactos
+        notifyDataSetChanged()
+    }
+
+    fun removerContacto(contacto: Contacto) {
+        val posicion = contactos.indexOf(contacto)
+        if (posicion != -1) {
+            val nuevaLista = contactos.toMutableList()
+            nuevaLista.removeAt(posicion)
+            contactos = nuevaLista
+            notifyItemRemoved(posicion)
+        }
+    }
+
+    fun agregarContacto(contacto: Contacto) {
+        val nuevaLista = contactos.toMutableList()
+        nuevaLista.add(contacto)
+        contactos = nuevaLista
+        notifyItemInserted(contactos.size - 1)
+    }
 }

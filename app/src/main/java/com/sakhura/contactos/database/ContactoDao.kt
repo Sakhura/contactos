@@ -2,7 +2,6 @@ package com.sakhura.contactos.database
 
 import androidx.lifecycle.LiveData
 import androidx.room.*
-import com.sakhura.contactos.model.Contacto
 
 @Dao
 interface ContactoDao {

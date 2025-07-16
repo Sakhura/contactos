@@ -3,7 +3,6 @@ package com.sakhura.contactos.utils
 
 import android.content.Context
 import android.provider.ContactsContract
-import com.sakhura.contactos.model.Contacto
 
 object ContactosUtils {
 

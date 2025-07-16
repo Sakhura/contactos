@@ -1,37 +1,223 @@
 package com.sakhura.contactos
 
+import android.content.Intent
 import android.os.Bundle
-import androidx.activity.enableEdgeToEdge
+import android.view.Menu
+import android.view.MenuItem
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
+import androidx.appcompat.widget.SearchView
+import androidx.lifecycle.ViewModelProvider
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.sakhura.contactos.adapter.ContactosAdapter
+import com.sakhura.contactos.databinding.ActivityMainBinding
+import com.sakhura.contactos.viewmodel.ContactosViewModel
 
 class MainActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityMainBinding
+    private lateinit var viewModel: ContactosViewModel
+    private lateinit var contactosAdapter: ContactosAdapter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContentView(R.layout.activity_main)
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main)) { v, insets ->
-            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
-            insets
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        configurarViewModel()
+        configurarToolbar()
+        configurarRecyclerView()
+        configurarFAB()
+        observarDatos()
+    }
+
+    private fun configurarViewModel() {
+        viewModel = ViewModelProvider(this)[ContactosViewModel::class.java]
+    }
+
+    private fun configurarToolbar() {
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.title = "Mis Contactos"
+    }
+
+    private fun configurarRecyclerView() {
+        contactosAdapter = ContactosAdapter(emptyList()) { contacto ->
+            // Manejar click en contacto
+            mostrarOpcionesContacto(contacto)
         }
-        val spinner = findViewById<Spinner>(R.id.spinnerGrupos)
-        viewModel.grupos.observe(this) { grupos ->
-            val adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, grupos.map { it.nombre })
-            spinner.adapter = adapter
 
-            spinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-                override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
-                    val grupoSeleccionado = grupos[position]
-                    viewModel.obtenerContactosDeGrupo(grupoSeleccionado.id).observe(this@MainActivity) {
-                        contactosAdapter.actualizarLista(it.contactos)
-                    }
+        binding.recyclerViewContactos.apply {
+            adapter = contactosAdapter
+            layoutManager = LinearLayoutManager(this@MainActivity)
+        }
+    }
+
+    private fun configurarFAB() {
+        binding.fabAgregarContacto.setOnClickListener {
+            abrirAgregarContacto()
+        }
+    }
+
+    private fun observarDatos() {
+        // Observar lista de contactos
+        viewModel.contactos.observe(this) { contactos ->
+            contactos?.let {
+                contactosAdapter.actualizarLista(it)
+
+                // Mostrar mensaje si no hay contactos
+                if (it.isEmpty()) {
+                    binding.textViewNoContactos.visibility = android.view.View.VISIBLE
+                    binding.recyclerViewContactos.visibility = android.view.View.GONE
+                } else {
+                    binding.textViewNoContactos.visibility = android.view.View.GONE
+                    binding.recyclerViewContactos.visibility = android.view.View.VISIBLE
                 }
-
-                override fun onNothingSelected(parent: AdapterView<*>) {}
             }
         }
 
+        // Observar resultados de búsqueda si hay texto en el SearchView
+        viewModel.contactosFiltrados.observe(this) { contactosFiltrados ->
+            contactosFiltrados?.let {
+                contactosAdapter.actualizarLista(it)
+            }
+        }
+    }
+
+    private fun mostrarOpcionesContacto(contacto: Contacto) {
+        val opciones = arrayOf("Ver detalles", "Editar", "Eliminar", "Compartir")
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle(contacto.nombre)
+            .setItems(opciones) { _, which ->
+                when (which) {
+                    0 -> verDetallesContacto(contacto)
+                    1 -> editarContacto(contacto)
+                    2 -> confirmarEliminarContacto(contacto)
+                    3 -> compartirContacto(contacto)
+                }
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun verDetallesContacto(contacto: Contacto) {
+        val mensaje = """
+            Nombre: ${contacto.nombre}
+            Teléfono: ${contacto.telefono}
+            Email: ${contacto.email}
+        """.trimIndent()
+
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Detalles del Contacto")
+            .setMessage(mensaje)
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
+    private fun editarContacto(contacto: Contacto) {
+        val intent = Intent(this, AgregarContactoActivity::class.java).apply {
+            putExtra("CONTACTO_ID", contacto.id)
+            putExtra("CONTACTO_NOMBRE", contacto.nombre)
+            putExtra("CONTACTO_TELEFONO", contacto.telefono)
+            putExtra("CONTACTO_EMAIL", contacto.email)
+            putExtra("MODO_EDICION", true)
+        }
+        startActivity(intent)
+    }
+
+    private fun confirmarEliminarContacto(contacto: Contacto) {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Eliminar Contacto")
+            .setMessage("¿Estás seguro de que quieres eliminar a ${contacto.nombre}?")
+            .setPositiveButton("Eliminar") { _, _ ->
+                viewModel.eliminar(contacto)
+                Toast.makeText(this, "${contacto.nombre} eliminado", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Cancelar", null)
+            .show()
+    }
+
+    private fun compartirContacto(contacto: Contacto) {
+        val compartirTexto = """
+            Contacto: ${contacto.nombre}
+            Teléfono: ${contacto.telefono}
+            Email: ${contacto.email}
+        """.trimIndent()
+
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, compartirTexto)
+            putExtra(Intent.EXTRA_SUBJECT, "Contacto: ${contacto.nombre}")
+        }
+
+        startActivity(Intent.createChooser(intent, "Compartir contacto"))
+    }
+
+    private fun abrirAgregarContacto() {
+        val intent = Intent(this, AgregarContactoActivity::class.java)
+        startActivity(intent)
+    }
+
+    private fun abrirGestionarGrupos() {
+        // TODO: Implementar gestión de grupos
+        Toast.makeText(this, "Gestión de grupos - Por implementar", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun exportarContactos() {
+        viewModel.contactos.value?.let { contactos ->
+            if (contactos.isNotEmpty()) {
+                // Aquí usarías BackupUtils
+                Toast.makeText(this, "Exportando ${contactos.size} contactos...", Toast.LENGTH_SHORT).show()
+                // BackupUtils.exportar(this, contactos)
+            } else {
+                Toast.makeText(this, "No hay contactos para exportar", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun importarContactos() {
+        // TODO: Implementar importación
+        Toast.makeText(this, "Importar contactos - Por implementar", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+
+        // Configurar SearchView
+        val searchItem = menu.findItem(R.id.action_search)
+        val searchView = searchItem.actionView as SearchView
+
+        searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?): Boolean {
+                return false
+            }
+
+            override fun onQueryTextChange(newText: String?): Boolean {
+                viewModel.buscar(newText ?: "")
+                return true
+            }
+        })
+
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_search -> true
+            R.id.action_grupos -> {
+                abrirGestionarGrupos()
+                true
+            }
+            R.id.action_exportar -> {
+                exportarContactos()
+                true
+            }
+            R.id.action_importar -> {
+                importarContactos()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
     }
 }
